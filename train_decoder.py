@@ -64,7 +64,7 @@ def train(
     model_jagged_mode=True,
     vae_hf_model_name="edobotta/rqvae-amazon-beauty"
 ):  
-    if dataset != RecDataset.AMAZON:
+    if dataset not in [RecDataset.AMAZON, RecDataset.IMAGES]:
         raise Exception(f"Dataset currently not supported: {dataset}.")
 
     if wandb_logging:
