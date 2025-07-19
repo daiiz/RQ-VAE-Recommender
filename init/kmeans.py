@@ -26,7 +26,7 @@ class Kmeans:
                  max_iters: int = None,
                  stop_threshold: float = 1e-10) -> None:
         self.k = k
-        self.iters = max_iters
+        self.iters = max_iters if max_iters is not None else 100  # Set default max iterations
         self.stop_threshold = stop_threshold
         self.centroids = None
         self.assignment = None
