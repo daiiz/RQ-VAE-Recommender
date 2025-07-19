@@ -1,6 +1,11 @@
 __pycache__
-dataset
-out
+dataset/*
+!dataset/images
+dataset/images/**/*
+out/rqvae/*/**
+!out/rqvae/images/checkpoint_29999.pt
 wandb
 trained_models/transformer*
 tl_out
+
+memo

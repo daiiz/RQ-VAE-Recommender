@@ -34,6 +34,9 @@ class Kmeans:
     def _init_centroids(self, x: torch.Tensor) -> None:
         B, D = x.shape
         init_idx = np.random.choice(B, self.k, replace=False)
+        # Use replace=True if k > B to avoid sampling error
+        # replace = self.k > B
+        # init_idx = np.random.choice(B, self.k, replace=replace)
         self.centroids = x[init_idx, :]
         self.assignment = None
 

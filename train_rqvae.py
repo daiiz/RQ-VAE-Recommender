@@ -70,11 +70,14 @@ def train(
 
     if do_eval:
         eval_dataset = ItemData(root=dataset_folder, dataset=dataset, force_process=False, train_test_split="eval", split=dataset_split)
+        # if len(eval_dataset) == 0:
+        #     print("Warning: No evaluation data available. Using training data for evaluation.")
+        #     eval_dataset = train_dataset
         eval_sampler = BatchSampler(RandomSampler(eval_dataset), batch_size, False)
         eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=None, collate_fn=lambda batch: batch)
 
     index_dataset = ItemData(root=dataset_folder, dataset=dataset, force_process=False, train_test_split="all", split=dataset_split) if do_eval else train_dataset
-    
+
     train_dataloader = accelerator.prepare(train_dataloader)
     # TODO: Investigate bug with prepare eval_dataloader
 
@@ -168,7 +171,7 @@ def train(
             accelerator.wait_for_everyone()
 
             optimizer.step()
-            
+
             accelerator.wait_for_everyone()
 
             id_diversity_log = {}
@@ -200,12 +203,12 @@ def train(
                         eval_losses[0].append(eval_model_output.loss.cpu().item())
                         eval_losses[1].append(eval_model_output.reconstruction_loss.cpu().item())
                         eval_losses[2].append(eval_model_output.rqvae_loss.cpu().item())
-                    
+
                     eval_losses = np.array(eval_losses).mean(axis=-1)
                     id_diversity_log["eval_total_loss"] = eval_losses[0]
                     id_diversity_log["eval_reconstruction_loss"] = eval_losses[1]
                     id_diversity_log["eval_rqvae_loss"] = eval_losses[2]
-                    
+
             if accelerator.is_main_process:
                 if (iter+1) % save_model_every == 0 or iter+1 == iterations:
                     state = {
@@ -219,14 +222,14 @@ def train(
                         os.makedirs(save_dir_root)
 
                     torch.save(state, save_dir_root + f"checkpoint_{iter}.pt")
-                
+
                 if (iter+1) % eval_every == 0 or iter+1 == iterations:
                     tokenizer.reset()
                     model.eval()
 
                     corpus_ids = tokenizer.precompute_corpus_ids(index_dataset)
                     max_duplicates = corpus_ids[:,-1].max() / corpus_ids.shape[0]
-                    
+
                     _, counts = torch.unique(corpus_ids[:,:-1], dim=0, return_counts=True)
                     p = counts / corpus_ids.shape[0]
                     rqvae_entropy = -(p*torch.log(p)).sum()
@@ -237,7 +240,7 @@ def train(
 
                     id_diversity_log["rqvae_entropy"] = rqvae_entropy.cpu().item()
                     id_diversity_log["max_id_duplicates"] = max_duplicates.cpu().item()
-                
+
                 if wandb_logging:
                     wandb.log({
                         **train_log,
@@ -245,7 +248,7 @@ def train(
                     })
 
             pbar.update(1)
-    
+
     if wandb_logging:
         wandb.finish()
 
