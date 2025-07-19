@@ -26,13 +26,14 @@ class Kmeans:
                  max_iters: int = None,
                  stop_threshold: float = 1e-10) -> None:
         self.k = k
-        self.iters = max_iters if max_iters is not None else 100  # Set default max iterations
+        self.iters = max_iters
         self.stop_threshold = stop_threshold
         self.centroids = None
         self.assignment = None
 
     def _init_centroids(self, x: torch.Tensor) -> None:
         B, D = x.shape
+        init_idx = np.random.choice(B, self.k, replace=False)
         # Use replace=True if k > B to avoid sampling error
         replace = self.k > B
         init_idx = np.random.choice(B, self.k, replace=replace)
