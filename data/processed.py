@@ -68,7 +68,16 @@ class ItemData(Dataset):
             filt = torch.ones_like(raw_data.data["item"]["x"][:,0], dtype=bool)
 
         self.item_data = raw_data.data["item"]["x"][filt]
-        self.item_text = raw_data.data["item"]["text"][filt] if "text" in raw_data.data["item"] else None
+        if "text" in raw_data.data["item"]:
+            # Convert tensor filter to numpy for list indexing
+            if isinstance(raw_data.data["item"]["text"], list):
+                import numpy as np
+                text_array = np.array(raw_data.data["item"]["text"])
+                self.item_text = text_array[filt.cpu().numpy()].tolist()
+            else:
+                self.item_text = raw_data.data["item"]["text"][filt]
+        else:
+            self.item_text = None
 
     def __len__(self):
         return self.item_data.shape[0]
