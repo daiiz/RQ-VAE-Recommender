@@ -4,6 +4,9 @@ import gin
 import torch
 import wandb
 
+# Disable torch.compile to avoid Triton issues
+torch._dynamo.config.disable = True
+
 from accelerate import Accelerator
 from data.processed import ItemData
 from data.processed import RecDataset
