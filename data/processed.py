@@ -36,7 +36,7 @@ DATASET_NAME_TO_MAX_SEQ_LEN = {
     RecDataset.AMAZON: 20,
     RecDataset.ML_1M: 200,
     RecDataset.ML_32M: 200,
-    RecDataset.IMAGES: 50
+    RecDataset.IMAGES: 20
 }
 
 
@@ -50,16 +50,16 @@ class ItemData(Dataset):
         train_test_split: str = "all",
         **kwargs
     ) -> None:
-        
+
         raw_dataset_class = DATASET_NAME_TO_RAW_DATASET[dataset]
         max_seq_len = DATASET_NAME_TO_MAX_SEQ_LEN[dataset]
 
         raw_data = raw_dataset_class(root=root, *args, **kwargs)
-        
+
         processed_data_path = raw_data.processed_paths[0]
         if not os.path.exists(processed_data_path) or force_process:
             raw_data.process(max_seq_len=max_seq_len)
-        
+
         if train_test_split == "train":
             filt = raw_data.data["item"]["is_train"]
         elif train_test_split == "eval":
@@ -96,7 +96,7 @@ class SeqData(Dataset):
         dataset: RecDataset = RecDataset.ML_1M,
         **kwargs
     ) -> None:
-        
+
         assert (not subsample) or is_train, "Can only subsample on training split."
 
         raw_dataset_class = DATASET_NAME_TO_RAW_DATASET[dataset]
@@ -122,31 +122,31 @@ class SeqData(Dataset):
         self._max_seq_len = max_seq_len
         self.item_data = raw_data.data["item"]["x"]
         self.split = split
-    
-    
+
+
     @property
     def max_seq_len(self):
         return self._max_seq_len
 
     def __len__(self):
         return self.sequence_data["userId"].shape[0]
-  
+
     def __getitem__(self, idx):
         user_ids = self.sequence_data["userId"][idx]
-        
+
         if self.subsample:
             seq = self.sequence_data["itemId"][idx] + self.sequence_data["itemId_fut"][idx].tolist()
             start_idx = random.randint(0, max(0, len(seq)-3))
             end_idx = random.randint(start_idx+3, start_idx+self.max_seq_len+1)
             sample = seq[start_idx:end_idx]
-            
+
             item_ids = torch.tensor(sample[:-1] + [-1] * (self.max_seq_len - len(sample[:-1])))
             item_ids_fut = torch.tensor([sample[-1]])
 
         else:
             item_ids = self.sequence_data["itemId"][idx]
             item_ids_fut = self.sequence_data["itemId_fut"][idx]
-        
+
         assert (item_ids >= -1).all(), "Invalid movie id found"
         x = self.item_data[item_ids, :768]
         x[item_ids == -1] = -1
