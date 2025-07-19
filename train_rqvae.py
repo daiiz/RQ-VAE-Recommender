@@ -70,6 +70,9 @@ def train(
 
     if do_eval:
         eval_dataset = ItemData(root=dataset_folder, dataset=dataset, force_process=False, train_test_split="eval", split=dataset_split)
+        if len(eval_dataset) == 0:
+            print("Warning: No evaluation data available. Using training data for evaluation.")
+            eval_dataset = train_dataset
         eval_sampler = BatchSampler(RandomSampler(eval_dataset), batch_size, False)
         eval_dataloader = DataLoader(eval_dataset, sampler=eval_sampler, batch_size=None, collate_fn=lambda batch: batch)
 

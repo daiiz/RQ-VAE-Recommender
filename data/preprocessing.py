@@ -88,7 +88,7 @@ class PreprocessingMixin:
         }
         fut_out = {
             feat + FUT_SUFFIX: torch.from_numpy(
-                df.select(feat + FUT_SUFFIX).to_numpy()
+                df.select(feat + FUT_SUFFIX).to_numpy().copy()
             ) for feat in features
         }
         out.update(fut_out)
@@ -123,8 +123,8 @@ class PreprocessingMixin:
         )
 
         max_seq_len = grouped_by_user.select(pl.col("seq_len").max()).item()
-        if max_seq_len is None:
-            max_seq_len = 10  # Default fallback for small datasets
+        # if max_seq_len is None:
+        #     max_seq_len = 10  # Default fallback for small datasets
         split_grouped_by_user = PreprocessingMixin._ordered_train_test_split(grouped_by_user, "max_timestamp", 0.8)
         padded_history = (split_grouped_by_user
             .with_columns(pad_len=max_seq_len-pl.col("seq_len"))
@@ -162,11 +162,15 @@ class PreprocessingMixin:
             padded_history.filter(pl.col("is_train")),
             features
         )
-        eval_data = padded_history.filter(pl.col("is_train").not_())
-        if len(eval_data) == 0:
-            # Fallback: use some training data for evaluation if no eval data
-            eval_data = padded_history.filter(pl.col("is_train")).head(min(10, len(padded_history)))
-        out["eval"] = PreprocessingMixin._df_to_tensor_dict(eval_data, features)
+        out["eval"] = PreprocessingMixin._df_to_tensor_dict(
+            padded_history.filter(pl.col("is_train").not_()),
+            features
+        )
+        # eval_data = padded_history.filter(pl.col("is_train").not_())
+        # if len(eval_data) == 0:
+        #     # Fallback: use some training data for evaluation if no eval data
+        #     eval_data = padded_history.filter(pl.col("is_train")).head(min(10, len(padded_history)))
+        # out["eval"] = PreprocessingMixin._df_to_tensor_dict(eval_data, features)
 
         return out
 
