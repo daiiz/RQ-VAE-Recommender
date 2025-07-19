@@ -42,11 +42,11 @@ class PreprocessingMixin:
             model = SentenceTransformer('sentence-transformers/sentence-t5-xl')
         embeddings = model.encode(sentences=text_feat, show_progress_bar=True, convert_to_tensor=True).cpu()
         return embeddings
-    
+
     @staticmethod
     def _rolling_window(group, features, window_size=200, stride=1):
         assert group["userId"].nunique() == 1, "Found data for too many users"
-        
+
         if len(group) < window_size:
             window_size = len(group)
             stride = 1
@@ -64,12 +64,12 @@ class PreprocessingMixin:
             ).map(torch.tensor) for i, name in enumerate(features)
         })
         return rolling_df
-    
+
     @staticmethod
     def _ordered_train_test_split(df, on, train_split=0.8):
         threshold = df.select(pl.quantile(on, train_split)).item()
         return df.with_columns(is_train=pl.col(on) <= threshold)
-    
+
     @staticmethod
     def _df_to_tensor_dict(df, features):
         out = {
@@ -77,7 +77,12 @@ class PreprocessingMixin:
                 rearrange(
                     df.select(feat).to_numpy().squeeze().tolist(), "b d -> b d"
                 )
-            ) if df.select(pl.col(feat).list.len().max() == pl.col(feat).list.len().min()).item()
+            ) if (
+                df.get_column(feat).dtype.base_type() == pl.List and
+                df.select(pl.col(feat).list.len().max() == pl.col(feat).list.len().min()).item()
+            ) or (
+                df.get_column(feat).dtype.base_type() == pl.Array
+            )
             else df.get_column("itemId").to_list()
             for feat in features
         }
@@ -99,7 +104,7 @@ class PreprocessingMixin:
         stride: int = 1,
         train_split: float = 0.8,
     ) -> torch.Tensor:
-        
+
         if isinstance(ratings_df, pd.DataFrame):
             ratings_df = pl.from_pandas(ratings_df)
 
@@ -116,8 +121,10 @@ class PreprocessingMixin:
                 max_timestamp=pl.max("timestamp")
             )
         )
-        
+
         max_seq_len = grouped_by_user.select(pl.col("seq_len").max()).item()
+        if max_seq_len is None:
+            max_seq_len = 10  # Default fallback for small datasets
         split_grouped_by_user = PreprocessingMixin._ordered_train_test_split(grouped_by_user, "max_timestamp", 0.8)
         padded_history = (split_grouped_by_user
             .with_columns(pad_len=max_seq_len-pl.col("seq_len"))
@@ -149,7 +156,7 @@ class PreprocessingMixin:
                 )
             )
         )
-        
+
         out = {}
         out["train"] = PreprocessingMixin._df_to_tensor_dict(
             padded_history.filter(pl.col("is_train")),
@@ -159,6 +166,6 @@ class PreprocessingMixin:
             padded_history.filter(pl.col("is_train").not_()),
             features
         )
-        
+
         return out
 
