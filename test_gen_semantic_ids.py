@@ -8,7 +8,7 @@ import numpy as np
 from data.processed import ItemData, RecDataset
 from modules.rqvae import RqVae
 
-def test_semantic_ids(checkpoint_path="out/checkpoint_29999.pt"):
+def test_semantic_ids(checkpoint_path="out/rqvae/images/checkpoint_29999.pt"):
     """Generate semantic IDs for a few items"""
 
     # Load dataset
