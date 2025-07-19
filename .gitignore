@@ -1,5 +1,6 @@
 __pycache__
-dataset
+dataset/*
+!dataset/images
 out
 wandb
 trained_models/transformer*
