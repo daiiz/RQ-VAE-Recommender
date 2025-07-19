@@ -90,6 +90,8 @@ class RawImages(Images, PreprocessingMixin):
         data['item'].x = x
         # Add is_train field for all items (images dataset uses all items for training)
         data['item'].is_train = torch.ones(len(df), dtype=torch.bool)
+        # Add text field for consistency with other datasets
+        data['item'].text = df['title'].tolist()
 
         # Process user data:
         full_df = pd.DataFrame({"userId": ratings_df["userId"].unique()})

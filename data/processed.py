@@ -67,7 +67,8 @@ class ItemData(Dataset):
         elif train_test_split == "all":
             filt = torch.ones_like(raw_data.data["item"]["x"][:,0], dtype=bool)
 
-        self.item_data, self.item_text = raw_data.data["item"]["x"][filt], raw_data.data["item"]["text"][filt]
+        self.item_data = raw_data.data["item"]["x"][filt]
+        self.item_text = raw_data.data["item"]["text"][filt] if "text" in raw_data.data["item"] else None
 
     def __len__(self):
         return self.item_data.shape[0]
