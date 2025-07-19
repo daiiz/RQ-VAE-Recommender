@@ -38,6 +38,9 @@ class PreprocessingMixin:
 
     @staticmethod
     def _encode_text_feature(text_feat, model=None):
+        # TODO: Consider migrating to OpenAI Embedding API (text-embedding-3-small/large with dimensions=768)
+        # Current: sentence-transformers/sentence-t5-xl (768-dim)
+        # Migration plan: memo/openai_embedding_migration_plan.md
         if model is None:
             model = SentenceTransformer('sentence-transformers/sentence-t5-xl')
         embeddings = model.encode(sentences=text_feat, show_progress_bar=True, convert_to_tensor=True).cpu()
