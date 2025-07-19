@@ -88,8 +88,13 @@ class RawImages(Images, PreprocessingMixin):
         x = torch.cat([titles_emb, genres], axis=1)
 
         data['item'].x = x
-        # Add is_train field for all items (images dataset uses all items for training)
-        data['item'].is_train = torch.ones(len(df), dtype=torch.bool)
+        # Add is_train field - reserve some items for evaluation
+        num_items = len(df)
+        train_ratio = 0.9  # 90% for training, 10% for evaluation
+        num_train = int(num_items * train_ratio)
+        is_train = torch.zeros(num_items, dtype=torch.bool)
+        is_train[:num_train] = True
+        data['item'].is_train = is_train
         # Add text field for consistency with other datasets
         data['item'].text = df['title'].tolist()
 

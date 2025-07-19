@@ -162,10 +162,11 @@ class PreprocessingMixin:
             padded_history.filter(pl.col("is_train")),
             features
         )
-        out["eval"] = PreprocessingMixin._df_to_tensor_dict(
-            padded_history.filter(pl.col("is_train").not_()),
-            features
-        )
+        eval_data = padded_history.filter(pl.col("is_train").not_())
+        if len(eval_data) == 0:
+            # Fallback: use some training data for evaluation if no eval data
+            eval_data = padded_history.filter(pl.col("is_train")).head(min(10, len(padded_history)))
+        out["eval"] = PreprocessingMixin._df_to_tensor_dict(eval_data, features)
 
         return out
 
