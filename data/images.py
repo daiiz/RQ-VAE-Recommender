@@ -21,11 +21,11 @@ class Images(InMemoryDataset):
         super().__init__(root, transform, pre_transform,
                          force_reload=force_reload)
         self.load(self.processed_paths[0], data_cls=HeteroData)
-    
+
     @property
     def raw_file_names(self) -> List[str]:
         return ['ratings.csv', 'items.csv']
-    
+
     @property
     def processed_file_names(self) -> str:
         return 'data.pt'
@@ -33,7 +33,7 @@ class Images(InMemoryDataset):
     @property
     def has_process(self) -> bool:
         return not os.path.exists(self.processed_paths[0])
-    
+
     def download(self) -> None:
         pass
 
@@ -56,14 +56,14 @@ class RawImages(Images, PreprocessingMixin):
 
     def _load_ratings(self):
         return pd.read_csv(self.raw_paths[0])
-    
+
     def process(self, max_seq_len=None) -> None:
         data = HeteroData()
         ratings_df = self._load_ratings()
 
         # Process item data:
         df = pd.read_csv(self.raw_paths[1], index_col='itemId')
-        
+
         item_mapping = {idx: i for i, idx in enumerate(df.index)}
 
         # Process genres/categories as one-hot
@@ -88,7 +88,7 @@ class RawImages(Images, PreprocessingMixin):
         x = torch.cat([titles_emb, genres], axis=1)
 
         data['item'].x = x
-        
+
         # Process user data:
         full_df = pd.DataFrame({"userId": ratings_df["userId"].unique()})
         df_users = self._remove_low_occurrence(ratings_df, full_df, "userId")
@@ -116,7 +116,7 @@ class RawImages(Images, PreprocessingMixin):
         else:
             # Use implicit feedback (all 1s) if no explicit ratings
             rating = torch.ones(len(df_ratings), dtype=torch.long)
-        
+
         data['user', 'rates', 'item'].rating = rating
 
         # Handle timestamp
@@ -125,7 +125,7 @@ class RawImages(Images, PreprocessingMixin):
         else:
             # Use sequential timestamps if none provided
             time = torch.arange(len(df_ratings), dtype=torch.long)
-        
+
         data['user', 'rates', 'item'].time = time
 
         # Create reverse edges
@@ -133,8 +133,9 @@ class RawImages(Images, PreprocessingMixin):
         data['item', 'rated_by', 'user'].rating = rating
         data['item', 'rated_by', 'user'].time = time
 
-        # Map item IDs for history generation - use scalar values like ml-1m dataset
+        # Map item IDs for history generation - follow ml32m pattern exactly
         df_ratings["itemId"] = df_ratings["itemId"].apply(lambda x: item_mapping[x])
+        df_ratings["rating"] = (2*df_ratings["rating"]).astype(int)
 
         # Generate user history
         data["user", "rated", "item"].history = self._generate_user_history(
