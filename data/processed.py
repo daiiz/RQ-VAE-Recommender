@@ -118,7 +118,7 @@ class SeqData(Dataset):
         if not os.path.exists(processed_data_path) or force_process:
             raw_data.process(max_seq_len=max_seq_len)
 
-        split = "train" if is_train else "test"
+        split = "train" if is_train else "eval"
         self.subsample = subsample
         self.sequence_data = raw_data.data[("user", "rated", "item")]["history"][split]
 
