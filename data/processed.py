@@ -145,7 +145,7 @@ class SeqData(Dataset):
         user_ids = self.sequence_data["userId"][idx]
 
         if self.subsample:
-            seq = self.sequence_data["itemId"][idx] + self.sequence_data["itemId_fut"][idx].tolist()
+            seq = self.sequence_data["itemId"][idx].tolist() + self.sequence_data["itemId_fut"][idx].tolist()
             start_idx = random.randint(0, max(0, len(seq)-3))
             end_idx = random.randint(start_idx+3, start_idx+self.max_seq_len+1)
             sample = seq[start_idx:end_idx]
