@@ -88,15 +88,17 @@ class RawImages(Images, PreprocessingMixin):
         x = torch.cat([titles_emb, genres], axis=1)
 
         data['item'].x = x
-        # Add is_train field - reserve some items for evaluation
+        # Add is_train field - use all items for training (small dataset)
         num_items = len(df)
-        train_ratio = 0.9  # 90% for training, 10% for evaluation
-        num_train = int(num_items * train_ratio)
-        is_train = torch.zeros(num_items, dtype=torch.bool)
-        is_train[:num_train] = True
+        is_train = torch.ones(num_items, dtype=torch.bool)  # All items for training
         data['item'].is_train = is_train
         # Add text field for consistency with other datasets
-        data['item'].text = df['title'].tolist()
+        if 'title' in df.columns:
+            data['item'].text = df['title'].astype(str).tolist()
+        elif 'description' in df.columns:
+            data['item'].text = df['description'].astype(str).tolist()
+        else:
+            data['item'].text = [f"item_{i}" for i in range(len(df))]
 
         # Process user data:
         full_df = pd.DataFrame({"userId": ratings_df["userId"].unique()})
@@ -144,14 +146,18 @@ class RawImages(Images, PreprocessingMixin):
 
         # Map item IDs for history generation - follow ml32m pattern exactly
         df_ratings["itemId"] = df_ratings["itemId"].apply(lambda x: item_mapping[x])
-        df_ratings["rating"] = (2*df_ratings["rating"]).astype(int)
+        # Only multiply rating by 2 if it exists and is a float
+        if 'rating' in df_ratings.columns and df_ratings['rating'].dtype == float:
+            df_ratings["rating"] = (2*df_ratings["rating"]).astype(int)
+        elif 'rating' not in df_ratings.columns:
+            df_ratings["rating"] = 1  # Default rating for implicit feedback
 
         # Generate user history
         data["user", "rated", "item"].history = self._generate_user_history(
             df_ratings,
             features=["itemId", "rating"],
-            window_size=max_seq_len if max_seq_len is not None else 50,
-            stride=40,
+            window_size=max_seq_len if max_seq_len is not None else 20,  # Smaller window for small dataset
+            stride=10,  # Smaller stride for small dataset
             train_split=0.8
         )
 
