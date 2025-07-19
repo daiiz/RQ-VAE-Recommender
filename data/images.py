@@ -133,8 +133,8 @@ class RawImages(Images, PreprocessingMixin):
         data['item', 'rated_by', 'user'].rating = rating
         data['item', 'rated_by', 'user'].time = time
 
-        # Map item IDs for history generation
-        df_ratings["itemId_mapped"] = df_ratings["itemId"].apply(lambda x: item_mapping[x])
+        # Map item IDs for history generation - convert to list format expected by preprocessing
+        df_ratings["itemId_mapped"] = df_ratings["itemId"].apply(lambda x: [item_mapping[x]])
 
         # Generate user history
         data["user", "rated", "item"].history = self._generate_user_history(
